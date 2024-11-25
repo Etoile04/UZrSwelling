@@ -1,0 +1,87 @@
+import pandas as pd
+import random
+import math
+
+# 读取Excel文件,根据需要修改文件路径
+file_path = r'C:\Users\etoiles04\Desktop\ionsspectrum.xlsx'
+ions_spectrum_df = pd.read_excel(file_path)
+
+# 过滤掉非整数的行
+ions_spectrum_df = ions_spectrum_df.dropna(how='any', subset=['Z', 'Energy[MeV]', 'Probability'])
+
+# 提取原子序数、能量和概率
+atomic_numbers = ions_spectrum_df['Z']
+energies = ions_spectrum_df['Energy[MeV]']
+probabilities = ions_spectrum_df['Probability']
+
+# 计算总概率
+total_probability = sum(probabilities)
+
+# 归一化概率
+normalized_probabilities = [p / total_probability for p in probabilities]
+# 归一化方向矢量
+def normalize_vector(v):
+    """Normalize the vector v."""
+    magnitude = math.sqrt(sum(x**2 for x in v))
+    return [x / magnitude for x in v]
+
+# 指定最大能量和最大深度
+max_energy = 120000000  # 假设最大能量为120 MeV
+max_depth = 150000  #  Å, 假设最大深度为150000 Å (15 μm)
+max_width = 20000  # 假设最大宽度为1000 Å  (2 μm)
+
+# 生成TRIM.DAT文件内容
+trim_dat_content = r"""����������� TRIM with various Incident Ion Energies/Angles and Depths ���������
+� Top  10 lines are user comments,  with  line  #8 describing experiment.     �
+� Line #8 will be written into all TRIM output files ( various files:  *.TXT).�
+� Data Table line consist of: EventName(5 char)+8 numbers separated by spaces.�
+� The Event Name consists of any 5  characters  to identify that line.        �
+� Cos(X) = 1 for normal incidence, and Cos(X) = -1  for backwards.            �
+���������������� Typical Data File is shown below  ����������������������������
+"""
+trim_dat_content += f"�� I Ions into Target({max_depth} A thick)  (Energies 2000.0-{max_energy:.3e}eV, Various Angles) ͻ\n"
+trim_dat_content +=r"""Event  Atom  Energy  Depth   Lateral-Position   ----- Atom Direction ----
+Name   Numb   (eV)    _X_(A)   _Y_(A)  _Z_(A)   Cos(X)   Cos(Y)   Cos(Z)
+"""
+num_events = 15000  # 假设我们生成15000个事件
+for _ in range(num_events):
+    # 根据归一化概率随机选择一个原子序数
+    random_prob = random.random()
+    cumulative_prob = 0.0
+    chosen_index = 0
+    for i, prob in enumerate(normalized_probabilities):
+        cumulative_prob += prob
+        if random_prob < cumulative_prob:
+            chosen_index = i
+            break
+
+    # 获取选定的原子序数和能量
+    atomic_number = atomic_numbers[chosen_index]
+    energy =1e6 * energies[chosen_index]
+
+    # 确保能量不超过最大能量
+    energy = min(energy, max_energy)
+
+    # 生成随机深度和横向位置
+    depth = random.uniform(0, max_depth)  # 使用最大深度
+    x_position = random.uniform(-max_width, max_width)
+    y_position = random.uniform(-max_width, max_width)
+
+    # 生成随机方向余弦
+    # 修改为在三维空间中随机选择方向
+    cos_x = random.uniform(-1, 1)
+    cos_y = random.uniform(-1, 1)
+    cos_z = random.uniform(-1, 1)
+    cos_x, cos_y, cos_z = normalize_vector([cos_x, cos_y, cos_z])
+
+    # 生成事件名称
+    event_name = f"EV{_:04d}"
+
+    # 添加到TRIM.DAT内容
+    trim_dat_content += f"{event_name} {atomic_number} {energy:.3e} {depth:.3e} {x_position:.2f} {y_position:.2f} {cos_x:.5f} {cos_y:.5f} {cos_z:.5f}\n"
+
+# 保存TRIM.DAT文件内容到文件中
+trim_dat_file_path = r'C:\Users\etoiles04\Documents\SRIM\TRIM.DAT'
+with open(trim_dat_file_path, 'w') as file:
+    file.write(trim_dat_content)
+print(f"TRIM.DAT file saved to {trim_dat_file_path}")
