@@ -3,7 +3,7 @@ import random
 import math
 
 # 读取Excel文件,根据需要修改文件路径
-file_path = r'C:\Users\etoiles04\Desktop\ionsspectrum.xlsx'
+file_path = r'C:\Users\Desktop\ionsspectrum.xlsx'
 ions_spectrum_df = pd.read_excel(file_path)
 
 # 过滤掉非整数的行
@@ -75,7 +75,7 @@ for _ in range(num_events):
     cos_x, cos_y, cos_z = normalize_vector([cos_x, cos_y, cos_z])
 
     # 生成事件名称
-    event_name = f"EV{_:04d}"
+    event_name = f"E{_:05d}"
 
     # 添加到TRIM.DAT内容
     trim_dat_content += f"{event_name} {atomic_number} {energy:.3e} {depth:.3e} {x_position:.2f} {y_position:.2f} {cos_x:.5f} {cos_y:.5f} {cos_z:.5f}\n"
